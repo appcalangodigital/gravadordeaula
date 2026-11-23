@@ -90,6 +90,8 @@ body.cel #bCam{display:block}
 <button id="bCena" title="Alterna entre o rosto grande e o documento (tecla T)">◀ Tela inteira</button>
 <label>Formato
 <select id="fmt"><option value="both">Os dois</option><option value="h">YouTube</option><option value="v">Instagram</option></select></label>
+<label>Rosto em tela inteira (tecla M)
+<select id="molV"><option value="livre">Só a bandeira (marca d'água)</option><option value="moldura">Bandeira e moldura</option></select></label>
 <div class="duo">
 <label>Coluna
 <select id="pos"><option value="r">Direita</option><option value="l">Esquerda</option></select></label>
@@ -170,8 +172,8 @@ function escolher(m){
 }
 function iniciarApp(modo){
 let W=1280;const H=720,GAP=8,MARG=4;
-const VWc=1080,VHc=1080,HH=200,FH=175,AH=VHc-HH-FH;
-const FLW=220,FLX=VWc-FLW-52,CDV=170,CXV=FLX+FLW/2-CDV/2,CYV=Math.round((HH-5-CDV)/2);
+const VWc=1080,VHc=1080;let HH=200,FH=175,AH=VHc-HH-FH;
+const FLW=220,FLX=VWc-FLW-52;let CDV=170,CXV=FLX+FLW/2-CDV/2,CYV=Math.round((HH-5-CDV)/2);
 const SER='Lora, Georgia, serif',SANS='"Public Sans", Arial, sans-serif',BEB='"Bebas Neue", Impact, sans-serif',SCR='Playball, "Brush Script MT", cursive';
 const TEAL='#2ee6d6',GOLD='#d4aa2c',DEEP1='#0f434a',DEEP2='#0a2f35',FUNDO='#1d2427';
 const WORKER='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -184,6 +186,8 @@ function leituraOn(){return modo==='pc'&&!verPrevia}
 const vCam=modo==='pc'?(()=>{const c=document.createElement('canvas');c.width=16;c.height=9;Object.defineProperty(c,'videoWidth',{get:()=>c.width});Object.defineProperty(c,'videoHeight',{get:()=>c.height});return c})():document.createElement('video');vCam.muted=true;vCam.playsInline=true;
 const flagImg=new Image();
 let brand=null,brandKey='',brandV=null,brandVF=null,brandN=null,brandNKey='';
+let molAtual='barras',molduraV=null;
+function aplicaMolV(){molAtual=$('molV').value}
 function limpaBrand(){brand=null;brandV=null;brandVF=null;brandN=null}
 flagImg.onload=limpaBrand;
 flagImg.src=FLAG;
@@ -453,7 +457,7 @@ function margemLeitura(){
 function escalaLeitura(){return (cvL.width-2*margemLeitura())/RW()}
 function drawLeitura(){
   const W2=cvL.width,H2=cvL.height,mg=margemLeitura(),Rr=Math.max(100,W2-2*mg),rw=RW(),f=Rr/rw;
-  const chave=[cur,Math.round(y),Rr,rw,H2,gen,cache.size,rendering.size,alvoCena,$('fmt').value,pages,pdf?1:0].join('|');
+  const chave=[cur,Math.round(y),Rr,rw,H2,gen,cache.size,rendering.size,alvoCena,$('fmt').value,$('molV').value,pages,pdf?1:0].join('|');
   if(chave===ultLeit)return;
   ultLeit=chave;
   cl.fillStyle=FUNDO;cl.fillRect(0,0,W2,H2);
@@ -548,7 +552,7 @@ function faceV(x,ax,ay,w,h,a){
 function faceFullV(a){
   c2.save();c2.globalAlpha=a;
   faceV(c2,0,0,VWc,VHc,1);
-  c2.lineWidth=12;c2.strokeStyle=TEAL;c2.strokeRect(6,6,VWc-12,VHc-12);
+  if(molAtual==='moldura'){c2.lineWidth=12;c2.strokeStyle=TEAL;c2.strokeRect(6,6,VWc-12,VHc-12)}
   if(flagImg.complete&&flagImg.naturalWidth){
     const wm=220,fh=Math.round(wm*flagImg.naturalHeight/flagImg.naturalWidth);
     const x=VWc-220-52,yb=VHc-52;
@@ -587,6 +591,7 @@ function draw(){
   gC=null;
   cena+=(alvoCena-cena)*0.3;
   if(Math.abs(alvoCena-cena)<0.02)cena=alvoCena;
+  aplicaMolV();
   const g=syncView(),f=$('fmt').value;
   if(leituraOn()){drawLeitura();return}
   if(f!=='v')drawH(g);
@@ -721,6 +726,7 @@ addEventListener('keydown',e=>{
   else if(k==='ArrowRight'){pan(80)}
   else if(k==='ArrowLeft'){pan(-80)}
   else if(k==='t'||k==='T'){setAlvo(alvoCena===0?1:0)}
+  else if(k==='m'||k==='M'){const sl=$('molV');sl.value=sl.value==='moldura'?'livre':'moldura';msg('Rosto em tela inteira: '+sl.options[sl.selectedIndex].text)}
   else return;
   e.preventDefault();
 });
@@ -905,7 +911,7 @@ if(modo==='cel'){
     if(!d||!d.t)return;
     switch(d.t){
       case 'v':
-        ['pos','tam','rosto'].forEach(k=>{if(d[k]!==undefined&&$(k).value!==String(d[k]))$(k).value=d[k]});
+        ['pos','tam','rosto','molV'].forEach(k=>{if(d[k]!==undefined&&$(k).value!==String(d[k]))$(k).value=d[k]});
         if(d.fmt&&!gravando&&$('fmt').value!==d.fmt){$('fmt').value=d.fmt;aplicaFmt()}
         if(d.alvo!==undefined&&alvoCena!==d.alvo)setAlvo(d.alvo);
         gC=null;
@@ -992,7 +998,7 @@ if(modo==='pc'){
   }
   setInterval(()=>{
     if(!conn||!conn.open)return;
-    const o={t:'v',cur,y:Math.round(y),xo:Math.round(xo),alvo:alvoCena,fmt:$('fmt').value,pos:$('pos').value,tam:$('tam').value,rosto:$('rosto').value};
+    const o={t:'v',cur,y:Math.round(y),xo:Math.round(xo),alvo:alvoCena,fmt:$('fmt').value,pos:$('pos').value,tam:$('tam').value,rosto:$('rosto').value,molV:$('molV').value};
     const s=JSON.stringify(o);if(s!==envAnt){envAnt=s;env(o)}
   },100);
   setInterval(()=>{if(conn&&conn.open&&Date.now()-ultimoSt>6000)pcSt('Sem sinal do celular… (a tela apagou?)')},1500);
