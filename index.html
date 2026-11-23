@@ -800,16 +800,18 @@ $('iniciar').onclick=()=>{
   const aud=audS?audS.getAudioTracks():[];
   recs=[];
   function novo(canvas,tag,bps){
-    const st=new MediaStream([...canvas.captureStream(24).getVideoTracks(),...aud]);
+    const at=recs.length?aud.map(t=>t.clone()):aud;
+    const st=new MediaStream([...canvas.captureStream(24).getVideoTracks(),...at]);
     const op={videoBitsPerSecond:bps};if(mimeAtual)op.mimeType=mimeAtual;
     const r=new MediaRecorder(st,op);
     const o={r,ch:[],tag};
+    r.onerror=e=>{o.erro=true;msg('Erro ao gravar o vídeo '+(tag==='V'?'Instagram':'YouTube')+': '+((e.error&&e.error.message)||'desconhecido'))};
     r.ondataavailable=e=>{if(e.data.size)o.ch.push(e.data)};
     r.onstop=()=>{pend--;if(pend===0)finalizar()};
     recs.push(o);
   }
   if(f!=='v')novo(cv,'H',6000000);
-  if(f!=='h')novo(cvV,'V',8000000);
+  if(f!=='h')novo(cvV,'V',5000000);
   pend=recs.length;
   recs.forEach(o=>o.r.start(1000));
   gravando=true;
@@ -843,6 +845,7 @@ function finalizar(){
   ['resH','resV'].forEach(i=>$(i).style.display='none');
   recs.forEach(o=>{
     o.blob=new Blob(o.ch,{type:tipo});
+    if(o.blob.size<2000)o.vazio=true;
     $('video'+o.tag).src=URL.createObjectURL(o.blob);
     $('res'+o.tag).style.display='block';
   });
@@ -851,15 +854,31 @@ function finalizar(){
   pausado=false;$('pausar').textContent='⏸ Pausar';$('pausar').classList.remove('on');
   ['bPdf','fmt'].forEach(i=>$(i).disabled=false);
   liberar();
+  if(recs.some(o=>o.vazio)){msg('Atenção: o vídeo '+recs.filter(o=>o.vazio).map(o=>o.tag==='V'?'Instagram':'YouTube').join(' e ')+' saiu vazio. Grave de novo só nesse formato.');return}
   msg(tipo.includes('mp4')?'Gravação pronta. Confira abaixo e baixe os vídeos.':'Gravação pronta. Atenção: este navegador gerou .webm, que o Instagram não aceita. Será preciso converter para mp4.');
 }
 function baixa(tag){
   const o=recs.find(r=>r.tag===tag);if(!o)return;
-  const ext=(mimeAtual||'').includes('mp4')?'mp4':'webm';
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(o.blob);
-  a.download='aula-'+new Date().toISOString().slice(0,10)+(tag==='H'?'-youtube.':'-instagram.')+ext;
-  a.click();
+  if(!o.blob||o.blob.size<2000){msg('Este vídeo está vazio e não pode ser baixado. Grave de novo.');return}
+  const mp4=(mimeAtual||'').includes('mp4'),ext=mp4?'mp4':'webm';
+  const nome='aula-'+new Date().toISOString().slice(0,10)+(tag==='H'?'-youtube.':'-instagram.')+ext;
+  if(!o.url)o.url=URL.createObjectURL(o.blob);
+  const mb=(o.blob.size/1048576).toFixed(1);
+  // link de reserva sempre visível, caso o navegador bloqueie o download automático
+  const box=$('res'+tag);let lk=box.querySelector('.reserva');
+  if(!lk){lk=document.createElement('a');lk.className='reserva';lk.style.cssText='display:block;margin-top:8px;color:#2ee6d6;font-size:13px';box.appendChild(lk)}
+  lk.href=o.url;lk.download=nome;lk.target='_blank';lk.textContent='Não baixou? Toque aqui ('+nome+', '+mb+' MB)';
+  const arq=new File([o.blob],nome,{type:o.blob.type||(mp4?'video/mp4':'video/webm')});
+  const movel=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)||(navigator.maxTouchPoints>1&&/Mac/.test(navigator.platform));
+  if(movel&&navigator.canShare&&navigator.canShare({files:[arq]})){
+    navigator.share({files:[arq],title:nome}).then(()=>msg('Escolha "Salvar vídeo" ou "Arquivos" no menu que abriu.')).catch(err=>{
+      if(err&&err.name==='AbortError'){msg('Compartilhamento cancelado. Toque em Baixar de novo ou use o link abaixo do vídeo.');return}
+      lk.click();
+    });
+    return;
+  }
+  lk.click();
+  msg('Baixando '+nome+' ('+mb+' MB)... Se nada aparecer, use o link abaixo do vídeo.');
 }
 $('baixarH').onclick=()=>baixa('H');
 $('baixarV').onclick=()=>baixa('V');
@@ -876,7 +895,7 @@ if(modo==='cel'){
   if(!/^\d{6}$/.test(codigo||''))codigo=String(Math.floor(100000+Math.random()*900000));
   const stR=t=>{$('stRemoto').textContent=t};
   function enviar(o){try{if(conn&&conn.open)conn.send(o)}catch(e){}}
-  function enviaSt(){enviar({t:'st',gravando,pausado,tempo:$('tempo').textContent,cam:camOn,pronto:!$('iniciar').disabled,temPdf:!!pdf,fim:$('resultado').style.display==='block',msg:$('msg').textContent})}
+  function enviaSt(){enviar({t:'st',gravando,pausado,tempo:$('tempo').textContent,cam:camOn,pronto:!$('iniciar').disabled,temPdf:!!pdf,fim:$('resultado').style.display==='block',vids:(!gravando?recs.filter(o=>o.blob&&!o.vazio).map(o=>o.tag):[]),msg:$('msg').textContent})}
   setInterval(enviaSt,600);
   let wl=null;
   async function acordar(){try{if(navigator.wakeLock&&document.visibilityState==='visible')wl=await navigator.wakeLock.request('screen')}catch(e){}}
@@ -898,6 +917,17 @@ if(modo==='cel'){
         let tot=0;pdfParts.forEach(p=>tot+=p.length);
         const all=new Uint8Array(tot);let o=0;pdfParts.forEach(p=>{all.set(p,o);o+=p.length});pdfParts=[];
         await abrirPdfBuf(all.buffer,true);break;}
+      case 'pedevid':{
+        const o=recs.find(r=>r.tag===d.tag);if(!o||!o.blob||!conn||!conn.open)break;
+        const CH=32768,n=Math.max(1,Math.ceil(o.blob.size/CH));
+        enviar({t:'vini',tag:d.tag,n,mime:mimeAtual||'video/webm'});
+        for(let i=0;i<n;i++){
+          while(conn&&conn.open&&conn.dataChannel&&conn.dataChannel.bufferedAmount>1000000)await new Promise(r=>setTimeout(r,60));
+          if(!conn||!conn.open)return;
+          const u=new Uint8Array(await o.blob.slice(i*CH,(i+1)*CH).arrayBuffer());
+          enviar({t:'vch',i,d:u});
+        }
+        enviar({t:'vfim',tag:d.tag});break;}
       case 'cam':if($('bCam').onclick)$('bCam').onclick();break;
       case 'rec':
         if(d.a==='ini'&&!$('iniciar').disabled)$('iniciar').click();
@@ -975,8 +1005,18 @@ if(modo==='pc'){
       }).catch(()=>{});
       return;
     }
+    if(d.t==='vini'){vRec={tag:d.tag,n:d.n,mime:d.mime,p:[]};pcSt('Recebendo vídeo... 0%');return}
+    if(d.t==='vch'){if(vRec){vRec.p.push(toU8(d.d));if(vRec.p.length%20===0)pcSt('Recebendo vídeo... '+Math.round(vRec.p.length/vRec.n*100)+'%')}return}
+    if(d.t==='vfim'){
+      if(!vRec)return;
+      const bl=new Blob(vRec.p,{type:vRec.mime});mimeAtual=vRec.mime;
+      recs=recs.filter(r=>r.tag!==vRec.tag);recs.push({tag:vRec.tag,blob:bl});
+      $('video'+vRec.tag).src=URL.createObjectURL(bl);
+      $('res'+vRec.tag).style.display='block';$('resultado').style.display='block';
+      pcSt('Vídeo recebido ✔ ('+(bl.size/1048576).toFixed(1)+' MB). Clique em Baixar.');vRec=null;return}
     if(d.t!=='st')return;
-    ultimoSt=Date.now();pcSt('Celular conectado ✔');
+    ultimoSt=Date.now();
+    const vd=d.vids||[];['H','V'].forEach(t=>{$('trazer'+t).style.display=vd.includes(t)?'block':'none'});pcSt('Celular conectado ✔');
     camOn=!!d.cam;
     $('bCam').textContent=camOn?'■ Desligar câmera':'1 · Ligar câmera';$('bCam').classList.toggle('on',camOn);
     $('tempo').textContent=d.tempo;
@@ -1009,6 +1049,12 @@ if(modo==='pc'){
   const bPrev=document.createElement('button');bPrev.id='bPrev';bPrev.textContent='Ver como sai no vídeo';
   $('lateral').insertBefore(bPrev,$('bCena').nextSibling);
   bPrev.onclick=()=>{verPrevia=!verPrevia;bPrev.textContent=verPrevia?'Voltar à leitura':'Ver como sai no vídeo';aplicaFmt()};
+  let vRec=null;
+  [['H','Trazer vídeo YouTube para o PC'],['V','Trazer vídeo Instagram para o PC']].forEach(([t,tx])=>{
+    const b=document.createElement('button');b.id='trazer'+t;b.textContent=tx;b.style.display='none';
+    b.onclick=()=>{env({t:'pedevid',tag:t});pcSt('Pedindo o vídeo ao celular...')};
+    $('lateral').insertBefore(b,$('iniciar').parentNode);
+  });
   $('bCam').onclick=()=>env({t:'cam'});
   $('iniciar').onclick=()=>{env({t:'rec',a:'ini'});$('iniciar').disabled=true};
   $('pausar').onclick=()=>env({t:'rec',a:'pausa'});
