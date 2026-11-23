@@ -68,8 +68,14 @@ html.foco::-webkit-scrollbar{display:none}
 .painelRemoto input{width:100%;padding:6px;border-radius:6px;border:1px solid #1d6b72;background:#031f23;color:#fff;text-align:center;font-size:14px}
 #codigo{font:700 34px 'Public Sans',Arial,sans-serif;letter-spacing:.12em;color:#2ee6d6}
 #stRemoto,#pcSt{font-weight:600}
+#barraIG{display:flex;flex-direction:column;gap:5px;background:#0b2a2f;border:1px solid rgba(46,230,214,.3);border-radius:10px;padding:7px}
+#barraIG .igT{font-size:11px;font-weight:700;color:#2ee6d6;text-transform:uppercase;letter-spacing:.04em;text-align:center}
+#barraIG .seg{display:grid;grid-template-columns:1fr 1fr;border-radius:8px;overflow:hidden;border:1px solid rgba(46,230,214,.45)}
+#barraIG .seg button{width:auto;border:0;border-radius:0;background:rgba(255,255,255,.08);padding:7px 2px;font-size:11px;line-height:1.15}
+#barraIG .seg button.on{background:#2ee6d6;color:#031211;font-weight:700}
+#igAviso{font-size:11px;line-height:1.3;color:#f0d98a}
 body.cel .lateral>*{display:none}
-body.cel .lateral>h1,body.cel .lateral>.painelRemoto,body.cel #bCam{display:flex}
+body.cel .lateral>h1,body.cel .lateral>.painelRemoto,body.cel #bCam,body.cel #barraIG{display:flex}
 body.cel #bCam{display:block}
 </style>
 </head>
@@ -88,9 +94,13 @@ body.cel #bCam{display:block}
 <button id="bPdf">2 · Abrir PDF</button>
 <input type="file" id="arq" accept="application/pdf" hidden>
 <button id="bCena" title="Alterna entre o rosto grande e o documento (tecla T)">◀ Tela inteira</button>
+<div id="barraIG"><span class="igT">Instagram agora:</span>
+<div class="seg"><button id="igAula" title="Cena com barras e PDF">Aula (com barras)</button><button id="igLivre" title="Rosto inteiro, sem barras">Livre (rosto inteiro)</button></div>
+<div class="seg"><button id="igSem">Sem moldura</button><button id="igCom">Com moldura</button></div>
+<span id="igAviso"></span></div>
 <label>Formato
 <select id="fmt"><option value="both">Os dois</option><option value="h">YouTube</option><option value="v">Instagram</option></select></label>
-<label>Rosto em tela inteira (tecla M)
+<label style="display:none">Rosto em tela inteira (tecla M)
 <select id="molV"><option value="livre">Só a bandeira (marca d'água)</option><option value="moldura">Bandeira e moldura</option></select></label>
 <div class="duo">
 <label>Coluna
@@ -353,7 +363,10 @@ function circulo(x,px,py,d){
     x.drawImage(vCam,(vCam.videoWidth-s)/2,(vCam.videoHeight-s)/2,s,s,px,py,d,d);
     x.restore();
     x.lineWidth=5;x.strokeStyle=TEAL;
-  }else{x.lineWidth=3;x.strokeStyle='rgba(46,230,214,.45)';}
+  }else{
+    x.lineWidth=3;x.strokeStyle='rgba(46,230,214,.45)';
+    x.save();x.fillStyle='rgba(191,224,227,.75)';x.font=Math.round(d/7)+'px Arial';x.textAlign='center';x.textBaseline='middle';x.fillText('rosto aqui',cx,cy);x.restore();
+  }
   x.beginPath();x.arc(cx,cy,d/2,0,Math.PI*2);x.stroke();
 }
 
@@ -544,8 +557,13 @@ function faceV(x,ax,ay,w,h,a){
     x.drawImage(vCam,ax+(w-dw)/2,ay+(h-dh)/2,dw,dh);
   }else{
     x.fillStyle=DEEP2;x.fillRect(ax,ay,w,h);
-    x.fillStyle='#bfe0e3';x.font='32px Arial';x.textAlign='center';x.textBaseline='middle';
-    x.fillText('Ligue a câmera',ax+w/2,ay+h/2);
+    x.strokeStyle='rgba(46,230,214,.55)';x.lineWidth=4;x.setLineDash([22,16]);x.strokeRect(ax+24,ay+24,w-48,h-48);x.setLineDash([]);
+    const mx=ax+w/2;x.fillStyle='rgba(191,224,227,.14)';
+    x.beginPath();x.arc(mx,ay+h*0.38,h*0.13,0,Math.PI*2);x.fill();
+    x.beginPath();x.ellipse(mx,ay+h*0.74,w*0.25,h*0.18,0,Math.PI,0);x.fill();
+    x.fillStyle='#bfe0e3';x.textAlign='center';x.textBaseline='middle';
+    x.font='700 56px Arial';x.fillText('ROSTO AQUI',mx,ay+h*0.5);
+    x.font='28px Arial';x.fillText('ligue a câmera no celular',mx,ay+h*0.5+52);
   }
   x.restore();
 }
@@ -640,6 +658,25 @@ function setAlvo(a){
   $('bCena').textContent=a===0?'Mostrar PDF ▶':'◀ Tela inteira';
 }
 $('bCena').onclick=()=>setAlvo(alvoCena===0?1:0);
+let igEnvia=()=>{};
+function atualizaIG(){
+  const livre=alvoCena===0,mol=$('molV').value==='moldura',f=$('fmt').value;
+  $('igAula').classList.toggle('on',!livre);$('igLivre').classList.toggle('on',livre);
+  $('igSem').classList.toggle('on',!mol);$('igCom').classList.toggle('on',mol);
+  let t;
+  if(f==='h')t='O formato está em YouTube. Escolha “Os dois” ou “Instagram” para ver o quadrado.';
+  else if(!livre)t='Vendo a cena AULA. A moldura só vale no vídeo Livre (clique em Livre para ver).';
+  else t=mol?'Vendo o LIVRE com moldura turquesa.':'Vendo o LIVRE sem moldura (só a bandeira).';
+  if(leituraOn()&&f!=='h')t+=' Abrindo a prévia do Instagram…';
+  $('igAviso').textContent=t;
+  $('rotV').textContent='Instagram (quadrado 1:1) · '+(livre?(mol?'LIVRE com moldura':'LIVRE sem moldura'):'AULA com barras');
+}
+function mostraIG(){const b=$('bPrev');if(modo==='pc'&&leituraOn()&&b)b.click();atualizaIG();if($('fmt').value!=='h')setTimeout(()=>$('blV').scrollIntoView({block:'nearest',behavior:'smooth'}),150)}
+$('igAula').onclick=()=>{setAlvo(1);igEnvia();mostraIG()};
+$('igLivre').onclick=()=>{setAlvo(0);igEnvia();mostraIG()};
+$('igSem').onclick=()=>{$('molV').value='livre';aplicaMolV();igEnvia();mostraIG()};
+$('igCom').onclick=()=>{$('molV').value='moldura';aplicaMolV();igEnvia();mostraIG()};
+setInterval(atualizaIG,250);atualizaIG();
 
 function atualizaPg(){$('pg').textContent='Página '+cur+' / '+pages}
 function rolar(dy){
@@ -901,6 +938,7 @@ if(modo==='cel'){
   if(!/^\d{6}$/.test(codigo||''))codigo=String(Math.floor(100000+Math.random()*900000));
   const stR=t=>{$('stRemoto').textContent=t};
   function enviar(o){try{if(conn&&conn.open)conn.send(o)}catch(e){}}
+  igEnvia=()=>enviar({t:'ig',alvo:alvoCena,molV:$('molV').value});
   function enviaSt(){enviar({t:'st',gravando,pausado,tempo:$('tempo').textContent,cam:camOn,pronto:!$('iniciar').disabled,temPdf:!!pdf,fim:$('resultado').style.display==='block',vids:(!gravando?recs.filter(o=>o.blob&&!o.vazio).map(o=>o.tag):[]),msg:$('msg').textContent})}
   setInterval(enviaSt,600);
   let wl=null;
@@ -1011,6 +1049,7 @@ if(modo==='pc'){
       }).catch(()=>{});
       return;
     }
+    if(d.t==='ig'){if(d.alvo!==undefined)setAlvo(d.alvo);if(d.molV)$('molV').value=d.molV;aplicaMolV();return}
     if(d.t==='vini'){vRec={tag:d.tag,n:d.n,mime:d.mime,p:[]};pcSt('Recebendo vídeo... 0%');return}
     if(d.t==='vch'){if(vRec){vRec.p.push(toU8(d.d));if(vRec.p.length%20===0)pcSt('Recebendo vídeo... '+Math.round(vRec.p.length/vRec.n*100)+'%')}return}
     if(d.t==='vfim'){
