@@ -80,13 +80,6 @@ html.foco::-webkit-scrollbar{display:none}
 body.cel .lateral>*{display:none}
 body.cel #barraIG{display:none}
 body.cel .lateral>h1,body.cel .lateral>.painelRemoto{display:flex}
-#barraSolo{position:fixed;left:50%;transform:translateX(-50%);bottom:8px;z-index:60;display:none;gap:6px;align-items:center;background:rgba(13,59,65,.92);border:1px solid rgba(46,230,214,.4);border-radius:16px;padding:6px;box-shadow:0 4px 14px rgba(0,0,0,.6)}
-#barraSolo button{width:auto;padding:12px 14px;font-size:15px;white-space:nowrap}
-#barraSolo b{min-width:64px;text-align:center;font-size:16px}
-#bsI{background:#2ee6d6;color:#031211;font-weight:700}
-#bsP{background:#f0b429;color:#120d00;font-weight:700}
-#bsF{background:#b42318}
-#bsH,#bsV{background:#2ee6d6;color:#031211;font-weight:700;display:none}
 /* ===== TELEPROMPTER ===== */
 #bTp{background:#7c4dff;color:#fff;font-weight:700}
 #tpBox{position:fixed;left:0;right:0;z-index:40;display:none;flex-direction:column;font-family:'Public Sans',Arial,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.6)}
@@ -1077,32 +1070,9 @@ if(modo==='cel'){
   const stR=t=>{$('stRemoto').textContent=t};
   function enviar(o){try{if(conn&&conn.open)conn.send(o)}catch(e){}}
   window.tpEnvCel=enviar;
-  window.celConectado=()=>!!(conn&&conn.open);
-  const bs=document.createElement('div');bs.id='barraSolo';
-  bs.innerHTML='<button id="bsI">● Gravar</button><button id="bsP">⏸ Pausar</button><button id="bsF">■ Finalizar</button><b id="bsT">00:00</b><button id="bsH">⬇ YouTube</button><button id="bsV">⬇ Instagram</button>';
-  document.body.appendChild(bs);
-  const B=i=>document.getElementById(i);
-  let semPc=false;
-  B('bsI').onclick=()=>$('iniciar').click();
-  B('bsP').onclick=()=>$('pausar').click();
-  B('bsF').onclick=()=>$('parar').click();
-  B('bsH').onclick=()=>baixa('H');
-  B('bsV').onclick=()=>baixa('V');
-  function atualizaSolo(){
-    const i=$('iniciar'),p=$('pausar'),f=$('parar');
-    B('bsI').textContent=i.textContent;B('bsI').disabled=i.disabled;
-    B('bsP').textContent=p.textContent;B('bsP').disabled=p.disabled;
-    B('bsF').disabled=f.disabled;
-    B('bsT').textContent=(gravando?(pausado?'⏸ ':'● '):'')+$('tempo').textContent;
-    ['H','V'].forEach(t=>{const o=recs.find(r=>r.tag===t);B('bs'+t).style.display=(!gravando&&o&&o.blob&&!o.vazio)?'inline-block':'none'});
-    const e=window.tpCelEstado&&window.tpCelEstado(),emBaixo=!!(e&&e.on&&e.lado==='baixo');
-    bs.style.bottom=emBaixo?'auto':'8px';bs.style.top=emBaixo?'8px':'auto';
-  }
-  function setSolo(on){semPc=on;bs.style.display=on?'flex':'none';if(on)atualizaSolo()}
-  setInterval(()=>{if(semPc)atualizaSolo()},500);
   igEnvia=()=>enviar({t:'ig',alvo:alvoCena,molV:$('molV').value});
   let ultSt='',ultStT=0;
-  function enviaSt(f){if(!conn||!conn.open)return;const o={t:'st',gravando,pausado,tempo:$('tempo').textContent,cam:camOn,pronto:!$('iniciar').disabled&&!cdRec,temPdf:!!pdf,fim:$('resultado').style.display==='block',vids:(!gravando?recs.filter(o=>o.blob&&!o.vazio).map(o=>o.tag):[]),msg:$('msg').textContent};const js=JSON.stringify(o);if(f!==true&&js===ultSt&&Date.now()-ultStT<2000)return;ultSt=js;ultStT=Date.now();enviar(o)}
+  function enviaSt(f){const o={t:'st',gravando,pausado,tempo:$('tempo').textContent,cam:camOn,pronto:!$('iniciar').disabled&&!cdRec,temPdf:!!pdf,fim:$('resultado').style.display==='block',vids:(!gravando?recs.filter(o=>o.blob&&!o.vazio).map(o=>o.tag):[]),msg:$('msg').textContent};const js=JSON.stringify(o);if(f!==true&&js===ultSt&&Date.now()-ultStT<2000)return;ultSt=js;ultStT=Date.now();enviar(o)}
   setInterval(()=>enviaSt(),600);
   let wl=null;
   async function acordar(){try{if(navigator.wakeLock&&document.visibilityState==='visible')wl=await navigator.wakeLock.request('screen')}catch(e){}}
@@ -1170,10 +1140,10 @@ if(modo==='cel'){
     peer.on('connection',c=>{
       if(conn&&conn.open){try{conn.close()}catch(e){}}
       conn=c;
-      const aberto=()=>{stR('Computador conectado ✔');setSolo(false);$('lateral').classList.add('oculta');ajustaTela();enviaSt(true);acordar()};
+      const aberto=()=>{stR('Computador conectado ✔');$('lateral').classList.add('oculta');ajustaTela();enviaSt(true);acordar()};
       if(c.open)aberto();else c.on('open',aberto);
       c.on('data',recebe);
-      c.on('close',()=>{if(conn===c){conn=null;stR('Computador desconectado. Aguardando de novo…');setSolo(true);ajustaTela()}});
+      c.on('close',()=>{if(conn===c){conn=null;stR('Computador desconectado. Aguardando de novo…');$('lateral').classList.remove('oculta');ajustaTela()}});
       c.on('error',()=>{});
     });
   }
@@ -1182,7 +1152,7 @@ if(modo==='cel'){
 
 if(modo==='pc'){
   const pn=document.createElement('div');pn.className='painelRemoto';
-  pn.innerHTML='<b>CELULAR (câmera e gravação)</b><input type="text" id="pcCod" inputmode="numeric" maxlength="6" placeholder="código de 6 números" autocomplete="off"><button id="pcCon">Conectar</button><button id="pcDes">Desconectar</button><div id="pcSt">Desconectado</div><button id="trocaModo">Trocar modo</button>';
+  pn.innerHTML='<b>CELULAR (câmera e gravação)</b><input type="text" id="pcCod" inputmode="numeric" maxlength="6" placeholder="código de 6 números" autocomplete="off"><button id="pcCon">Conectar</button><div id="pcSt">Desconectado</div><button id="trocaModo">Trocar modo</button>';
   $('lateral').insertBefore(pn,$('lateral').children[1]);
   $('trocaModo').onclick=()=>{location.hash='';location.reload()};
   let peer=null,conn=null,ultimoSt=0,ultimoPdf=null,envAnt='',msgAnt='';
@@ -1259,12 +1229,6 @@ if(modo==='pc'){
     peer.on('error',e=>pcSt(e.type==='peer-unavailable'?'Código não encontrado. Confira o número no celular.':'Erro de conexão ('+e.type+').'));
   }
   $('pcCon').onclick=conectar;
-  $('pcDes').onclick=()=>{
-    if(!conn||!conn.open){pcSt('Já está desconectado.');return}
-    if(window.tpFlush)window.tpFlush();
-    pcSt('Desconectando…');
-    setTimeout(()=>{try{conn.close()}catch(e){}conn=null;if(peer){try{peer.destroy()}catch(e){}peer=null}pcSt('Desconectado. O celular segue sozinho.')},400);
-  };
   $('pcCod').onkeydown=e=>{if(e.key==='Enter')conectar()};
   const bPrev=document.createElement('button');bPrev.id='bPrev';bPrev.textContent='Ver como sai no vídeo';
   $('lateral').insertBefore(bPrev,$('bCena').nextSibling);
@@ -1403,11 +1367,10 @@ window.addEventListener('keydown',e=>{
  if(ok){e.preventDefault();e.stopImmediatePropagation()}
 },true);
 function sendEstado(f){const v=id=>Q(id).value;
- const o={k:'estado',sinc:Q('tpSinc').checked,on:rem()&&aberto(),txt:ent.value,vel:v('tpVel'),tam:v('tpTam'),tamCel:v('tpTamCel'),altCel:v('tpAltCel'),larg:v('tpLarg'),esp:v('tpEsp'),alin:v('tpAlin'),cor:v('tpCor'),fundo:v('tpFundo'),op:v('tpOp'),lado:v('tpLado'),guiaPos:v('tpGuiaPos'),guiaOn:Q('tpGuiaOn').checked,dest:Q('tpDest').checked,espH:Q('tpEspH').checked};
+ const o={k:'estado',on:rem()&&aberto(),txt:ent.value,vel:v('tpVel'),tam:v('tpTam'),tamCel:v('tpTamCel'),altCel:v('tpAltCel'),larg:v('tpLarg'),esp:v('tpEsp'),alin:v('tpAlin'),cor:v('tpCor'),fundo:v('tpFundo'),op:v('tpOp'),lado:v('tpLado'),guiaPos:v('tpGuiaPos'),guiaOn:Q('tpGuiaOn').checked,dest:Q('tpDest').checked,espH:Q('tpEspH').checked};
  const j=JSON.stringify(o);if(j!==estAnt||f){estAnt=j;envTp(o)}}
 window.tpRecebeR=d=>{lastR=Date.now();remCur=d.cur;remTot=d.tot;if(!loc()){if(!cdTimer)Q('tpTempo').textContent=fmt(d.cur)+' / '+fmt(d.tot);if(Date.now()-cmdT>1500&&rodando!==d.run){rodando=d.run;Q('tpPlay').textContent=rodando?'⏸ Pausar':'▶ Iniciar'}}};
 setInterval(()=>{if(aberto())sendEstado(true)},4000);
-window.tpFlush=()=>{if(aberto())sendEstado(true)};
 setInterval(()=>{if(aberto()&&!loc()&&!cdTimer&&Date.now()-lastR>3000)Q('tpTempo').textContent='⚠ sem sinal do celular'},1000);
 })();
 </script>
@@ -1438,12 +1401,6 @@ function aplica(){
 }
 function loop(t){if(!run)return;const dt=(t-last)/1000;last=t;pos+=vp()*dt;if(pos>=maxS()){pos=maxS();run=false}rol.scrollTop=pos;if(run)requestAnimationFrame(loop)}
 function play(){if(run)return;run=true;last=performance.now();requestAnimationFrame(loop)}
-const sozinho=()=>!(window.celConectado&&window.celConectado());
- const sincOk=()=>sozinho()&&s&&s.on&&s.sinc!==false;
- document.addEventListener('gravini',()=>{if(!sincOk())return;run=false;pos=0;rol.scrollTop=0;play()});
- Q('pausar').addEventListener('click',()=>{if(!sincOk())return;if(run)run=false;else play()});
- Q('parar').addEventListener('click',()=>{if(sozinho())run=false});
- window.tpCelEstado=()=>s;
 window.tpCelRecebe=d=>{
  if(d.k==='estado'){s=d;aplica();return}
  if(!s)return;
