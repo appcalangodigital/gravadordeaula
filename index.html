@@ -896,7 +896,7 @@ $('bCam').onclick=async()=>{
     $('bCam').disabled=false;return;
   }
   if(!audS){
-    try{audS=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}})}
+    try{audS=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:true}})}
     catch(e){msg('Câmera ligada, mas sem microfone: o vídeo sairá sem som.')}
   }
   $('bCam').disabled=false;rotuloCam();
@@ -943,7 +943,7 @@ $('iniciar').onclick=()=>{
   function novo(canvas,tag,bps){
     const at=recs.length?aud.map(t=>t.clone()):aud;
     const st=new MediaStream([...canvas.captureStream(FPS_GRAV).getVideoTracks(),...at]);
-    const op={videoBitsPerSecond:bps};if(mimeAtual)op.mimeType=mimeAtual;
+    const op={videoBitsPerSecond:bps,audioBitsPerSecond:128000};if(mimeAtual)op.mimeType=mimeAtual;
     const r=new MediaRecorder(st,op);
     const o={r,ch:[],tag};
     r.onerror=e=>{o.erro=true;msg('Erro ao gravar o vídeo '+(tag==='V'?'Instagram':'YouTube')+': '+((e.error&&e.error.message)||'desconhecido'))};
