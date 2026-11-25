@@ -662,8 +662,7 @@ function aplicaProp(){
   if(gravando)return;
   const vert=$('prop').value==='r';
   VHc=vert?1920:1080;
-  if(vert){HH=330;FH=470;HT=140;WMB=360;FLXv=52;TXv=52+FLW+36;TWv=VWc-120-TXv}
-  else{HH=200;FH=175;HT=0;WMB=52;FLXv=FLX;TXv=52;TWv=FLX-52-40}
+  HH=200;FH=175;HT=0;WMB=52;FLXv=FLX;TXv=52;TWv=FLX-52-40;
   FCH=175;AH=VHc-HH-FH;
   CXV=FLXv+FLW/2-CDV/2;
   CYV=HT+Math.round((HH-5-HT-CDV)/2);
