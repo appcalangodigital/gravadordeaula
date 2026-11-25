@@ -161,6 +161,8 @@ body.cel .lateral>h1,body.cel .lateral>.painelRemoto{display:flex}
 </div>
 <label>Ir para a página
 <input type="number" id="irPg" min="1" placeholder="nº e Enter"></label>
+<label>Contagem antes de gravar
+<select id="contRec"><option value="0">Sem contagem</option><option value="3">3 segundos</option><option value="5" selected>5 segundos</option><option value="10">10 segundos</option></select></label>
 <div class="duo">
 <button id="iniciar" disabled>● Gravar</button>
 <button id="pausar" disabled>⏸ Pausar</button>
@@ -935,7 +937,7 @@ function pickMime(){
   return '';
 }
 
-$('iniciar').onclick=()=>{
+function comecaGravacao(){
   const f=$('fmt').value;
   mimeAtual=pickMime();
   const aud=audS?audS.getAudioTracks():[];
@@ -962,7 +964,39 @@ $('iniciar').onclick=()=>{
   ['iniciar','fmt','prop'].forEach(i=>$(i).disabled=true);
   $('parar').disabled=false;$('pausar').disabled=false;
   msg('Gravando... Use Pausar para parar um instante e Finalizar para terminar.'+(modo==='cel'&&f==='both'?' (Os dois formatos juntos pesam no celular. Se travar, grave um por vez.)':''));
-};
+}
+window.MODO_APP=modo;
+let cdRec=null,cdOv=null;
+try{const sv=localStorage.getItem('gdaula_cont');if(sv!==null&&[...$('contRec').options].some(o=>o.value===sv))$('contRec').value=sv}catch(e){}
+$('contRec').onchange=function(){try{localStorage.setItem('gdaula_cont',this.value)}catch(e){}this.blur()};
+function fimContagem(){
+  if(cdRec){clearInterval(cdRec);cdRec=null}
+  if(cdOv){cdOv.remove();cdOv=null}
+  $('iniciar').textContent='● Gravar';
+}
+function iniciaComContagem(){
+  if(cdRec){fimContagem();msg('Contagem cancelada.');return}
+  const n=parseInt($('contRec').value)||0;
+  if(n<=0){comecaGravacao();document.dispatchEvent(new Event('gravini'));return}
+  let c=n;
+  cdOv=document.createElement('div');
+  cdOv.style.cssText='position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.6);color:#fff;font:700 40vmin/1 "Public Sans",Arial,sans-serif;cursor:pointer';
+  cdOv.innerHTML='<div></div><small style="font:500 4vmin Arial,sans-serif;margin-top:2vmin">Toque para cancelar</small>';
+  cdOv.onclick=()=>{fimContagem();msg('Contagem cancelada.')};
+  document.body.appendChild(cdOv);
+  $('iniciar').textContent='✕ Cancelar contagem';
+  const mostra=v=>{cdOv.firstChild.textContent=v;msg('A gravação começa em '+v+'... (toque na tela para cancelar)')};
+  mostra(c);
+  cdRec=setInterval(()=>{
+    c--;
+    if(c>0){mostra(c);return}
+    fimContagem();
+    if(gravando)return;
+    if(!(camOn||audS)){msg('Contagem cancelada: ligue a câmera primeiro.');return}
+    comecaGravacao();document.dispatchEvent(new Event('gravini'));
+  },1000);
+}
+$('iniciar').onclick=iniciaComContagem;
 $('parar').onclick=()=>{recs.forEach(o=>{if(o.r.state!=='inactive')o.r.stop()})};
 $('pausar').onclick=()=>{
   if(!gravando)return;
@@ -1038,7 +1072,7 @@ if(modo==='cel'){
   window.tpEnvCel=enviar;
   igEnvia=()=>enviar({t:'ig',alvo:alvoCena,molV:$('molV').value});
   let ultSt='',ultStT=0;
-  function enviaSt(f){const o={t:'st',gravando,pausado,tempo:$('tempo').textContent,cam:camOn,pronto:!$('iniciar').disabled,temPdf:!!pdf,fim:$('resultado').style.display==='block',vids:(!gravando?recs.filter(o=>o.blob&&!o.vazio).map(o=>o.tag):[]),msg:$('msg').textContent};const js=JSON.stringify(o);if(f!==true&&js===ultSt&&Date.now()-ultStT<2000)return;ultSt=js;ultStT=Date.now();enviar(o)}
+  function enviaSt(f){const o={t:'st',gravando,pausado,tempo:$('tempo').textContent,cam:camOn,pronto:!$('iniciar').disabled&&!cdRec,temPdf:!!pdf,fim:$('resultado').style.display==='block',vids:(!gravando?recs.filter(o=>o.blob&&!o.vazio).map(o=>o.tag):[]),msg:$('msg').textContent};const js=JSON.stringify(o);if(f!==true&&js===ultSt&&Date.now()-ultStT<2000)return;ultSt=js;ultStT=Date.now();enviar(o)}
   setInterval(()=>enviaSt(),600);
   let wl=null;
   async function acordar(){try{if(navigator.wakeLock&&document.visibilityState==='visible')wl=await navigator.wakeLock.request('screen')}catch(e){}}
@@ -1075,7 +1109,7 @@ if(modo==='cel'){
       case 'tp':if(window.tpCelRecebe)window.tpCelRecebe(d);return;
       case 'cam':if($('bCam').onclick)$('bCam').onclick();break;
       case 'rec':
-        if(d.a==='ini'&&!$('iniciar').disabled)$('iniciar').click();
+        if(d.a==='ini'&&!$('iniciar').disabled){if(d.n!==undefined&&[...$('contRec').options].some(o=>o.value===String(d.n)))$('contRec').value=String(d.n);$('iniciar').click()}
         else if(d.a==='fim'&&!$('parar').disabled)$('parar').click();
         else if(d.a==='pausa'&&!$('pausar').disabled)$('pausar').click();
         break;
@@ -1206,7 +1240,7 @@ if(modo==='pc'){
     $('lateral').insertBefore(b,$('iniciar').parentNode);
   });
   $('bCam').onclick=()=>env({t:'cam'});
-  $('iniciar').onclick=()=>{env({t:'rec',a:'ini'});$('iniciar').disabled=true};
+  $('iniciar').onclick=()=>{env({t:'rec',a:'ini',n:parseInt($('contRec').value)||0});$('iniciar').disabled=true};
   $('pausar').onclick=()=>env({t:'rec',a:'pausa'});
   $('parar').onclick=()=>env({t:'rec',a:'fim'});
   $('arq').onchange=async e=>{
@@ -1306,7 +1340,9 @@ new ResizeObserver(()=>{if(aberto())aplica()}).observe(view);
 
 // Sincroniza com os botões de gravação do programa
 const sinc=()=>aberto()&&Q('tpSinc').checked;
-Q('iniciar').addEventListener('click',()=>{if(sinc()){topo();iniciar()}});
+const iniTp=()=>{if(sinc()){topo();iniciar()}};
+Q('iniciar').addEventListener('click',()=>{if(window.MODO_APP==='pc'){const n=parseInt(document.getElementById('contRec').value)||0;setTimeout(iniTp,n*1000)}});
+document.addEventListener('gravini',()=>{if(window.MODO_APP!=='pc')iniTp()});
 Q('pausar').addEventListener('click',()=>{if(sinc())alterna()});
 Q('parar').addEventListener('click',()=>{if(sinc())parar()});
 
