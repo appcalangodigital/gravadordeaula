@@ -80,6 +80,32 @@ html.foco::-webkit-scrollbar{display:none}
 body.cel .lateral>*{display:none}
 body.cel #barraIG{display:none}
 body.cel .lateral>h1,body.cel .lateral>.painelRemoto{display:flex}
+/* ===== TELEPROMPTER ===== */
+#bTp{background:#7c4dff;color:#fff;font-weight:700}
+#tpBox{position:fixed;left:0;right:0;z-index:40;display:none;flex-direction:column;font-family:'Public Sans',Arial,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.6)}
+#tpBox [hidden]{display:none!important}
+#tpBox button{width:auto;padding:6px 11px;font-size:12px}
+#tpBox button.on{background:#2ee6d6;color:#031211}
+#tpBar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 8px;background:#0d3b41;font-size:12px}
+#tpBar label{flex-direction:row;align-items:center;gap:4px;color:#fff}
+#tpBar input[type=range]{width:90px}
+#tpPlay{background:#2ee6d6!important;color:#031211;font-weight:700;font-size:14px!important}
+#tpTempo{font-weight:600;min-width:80px;text-align:center}
+#tpEditor{background:#0b2a2f;padding:8px;display:flex;gap:8px;align-items:flex-start}
+#tpEditor textarea{flex:1;height:150px;border-radius:8px;border:0;padding:8px;font:14px Arial;background:#f4fbfb;color:#111;resize:vertical}
+#tpEditor div{display:flex;flex-direction:column;gap:6px}
+#tpCfgBox{background:#0b2a2f;padding:8px;display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;font-size:11px}
+#tpCfgBox label{color:#bfe0e3}
+#tpCfgBox label.ck{flex-direction:row;align-items:center;gap:6px;color:#fff}
+#tpCfgBox input[type=color]{width:100%;height:26px;border:0;padding:0;background:none}
+#tpView{position:relative;flex:1;overflow:hidden;min-height:60px}
+#tpRol{position:absolute;inset:0;overflow:hidden}
+#tpTxt{margin:0 auto;white-space:pre-wrap;word-wrap:break-word;font-weight:700}
+#tpGuia{position:absolute;left:0;right:0;height:0;border-top:2px solid rgba(255,70,70,.85);pointer-events:none;display:none}
+#tpGuia::before{content:"▶";position:absolute;left:4px;top:-12px;color:#ff4646;font-size:14px}
+#tpSombra{position:absolute;inset:0;pointer-events:none}
+#tpBarra{position:absolute;left:0;bottom:0;height:4px;background:#2ee6d6;width:0}
+#tpCont{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-size:25vh;font-weight:800;color:#fff;background:rgba(0,0,0,.5)}
 </style>
 </head>
 <body>
@@ -97,6 +123,7 @@ body.cel .lateral>h1,body.cel .lateral>.painelRemoto{display:flex}
 <button id="bPdf">2 · Abrir PDF</button>
 <input type="file" id="arq" accept="application/pdf" hidden>
 <button id="bCena" title="Alterna entre o rosto grande e o documento (tecla T)">◀ Tela inteira</button>
+<button id="bTp" title="Teleprompter para ler o roteiro (tecla P)">📝 Teleprompter (P)</button>
 <div id="barraIG"><span class="igT">Instagram agora:</span>
 <div class="seg"><button id="igAula" title="Cena com barras e PDF">Aula (com barras)</button><button id="igLivre" title="Rosto inteiro, sem barras">Livre (rosto inteiro)</button></div>
 <div class="seg"><button id="igSem">Sem moldura</button><button id="igCom">Com moldura</button></div>
@@ -156,6 +183,37 @@ body.cel .lateral>h1,body.cel .lateral>.painelRemoto{display:flex}
 </div>
 </div>
 </main>
+</div>
+<div id="tpBox">
+<div id="tpBar">
+<button id="tpPlay">▶ Iniciar</button><button id="tpTopo">⏮ Início</button>
+<label>Velocidade <input type="range" id="tpVel" class="tpc" min="1" max="100" value="25"></label>
+<label>Letra <input type="range" id="tpTam" class="tpc" min="20" max="160" value="60"></label>
+<span id="tpTempo">0:00 / 0:00</span>
+<button id="tpEdit">📝 Roteiro</button><button id="tpCfg">⚙ Ajustes</button><button id="tpFechar">✕ Fechar</button>
+</div>
+<div id="tpEditor" hidden>
+<textarea id="tpEntrada" placeholder="Cole ou escreva seu roteiro aqui..."></textarea>
+<div><button id="tpAbrir">📂 Abrir .txt</button><button id="tpSalvar">💾 Salvar .txt</button><button id="tpLimpar">🗑 Limpar</button></div>
+<input type="file" id="tpArq" accept=".txt" hidden>
+</div>
+<div id="tpCfgBox" hidden>
+<label>Posição na tela<select id="tpLado" class="tpc"><option value="topo">Em cima</option><option value="baixo">Embaixo</option><option value="toda">Tela toda</option></select></label>
+<label>Altura <span id="tpAlV"></span><input type="range" id="tpAltura" class="tpc" min="15" max="100" value="45"></label>
+<label>Largura do texto <span id="tpLaV"></span><input type="range" id="tpLarg" class="tpc" min="40" max="100" value="90"></label>
+<label>Espaço entre linhas <span id="tpEsV"></span><input type="range" id="tpEsp" class="tpc" min="1" max="2.5" step="0.1" value="1.5"></label>
+<label>Linha guia (altura) <span id="tpGpV"></span><input type="range" id="tpGuiaPos" class="tpc" min="5" max="85" value="30"></label>
+<label>Transparência do fundo <span id="tpOpV"></span><input type="range" id="tpOp" class="tpc" min="0" max="100" value="85"></label>
+<label>Cor do texto<input type="color" id="tpCor" class="tpc" value="#ffffff"></label>
+<label>Cor do fundo<input type="color" id="tpFundo" class="tpc" value="#000000"></label>
+<label>Alinhamento<select id="tpAlin" class="tpc"><option value="center">Centro</option><option value="left">Esquerda</option><option value="right">Direita</option></select></label>
+<label>Contagem regressiva <span id="tpCtV"></span><input type="range" id="tpCont3" class="tpc" min="0" max="10" value="3"></label>
+<label class="ck"><input type="checkbox" id="tpGuiaOn" class="tpc" checked> Mostrar linha guia</label>
+<label class="ck"><input type="checkbox" id="tpDest" class="tpc"> Escurecer fora da guia</label>
+<label class="ck"><input type="checkbox" id="tpEspH" class="tpc"> Espelhar texto</label>
+<label class="ck"><input type="checkbox" id="tpSinc" class="tpc" checked> Rolar junto com ● Gravar / ⏸ / ■</label>
+</div>
+<div id="tpView"><div id="tpRol"><div id="tpTxt"></div></div><div id="tpGuia"></div><div id="tpSombra"></div><div id="tpBarra"></div><div id="tpCont"></div></div>
 </div>
 <script>
 const $=id=>document.getElementById(id);
@@ -1142,6 +1200,106 @@ $('escCel').onclick=()=>escolher('cel');
 $('escPc').onclick=()=>escolher('pc');
 $('escSoz').onclick=()=>escolher('sozinho');
 {const h=location.hash.slice(1);if(h==='cel'||h==='pc')escolher(h);}
+</script>
+<script>
+(function(){
+const Q=i=>document.getElementById(i);
+const box=Q('tpBox'),rol=Q('tpRol'),txt=Q('tpTxt'),view=Q('tpView'),ent=Q('tpEntrada');
+let pos=0,rodando=false,ultimo=0,cdTimer=null;
+const cfg=[...box.querySelectorAll('.tpc')];
+const vel=()=>Q('tpVel').value*2;
+const maxS=()=>Math.max(0,txt.offsetHeight-rol.clientHeight);
+const fmt=s=>{s=Math.max(0,Math.round(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){}return null}
+function salvaCfg(){const o={};cfg.forEach(e=>o[e.id]=e.type==='checkbox'?e.checked:e.value);ls('tp_cfg',JSON.stringify(o))}
+function carregaCfg(){try{const o=JSON.parse(ls('tp_cfg')||'{}');cfg.forEach(e=>{if(e.id in o){if(e.type==='checkbox')e.checked=o[e.id];else e.value=o[e.id]}})}catch(e){}
+ ent.value=ls('tp_texto')||'Cole aqui o seu roteiro (botão 📝 Roteiro) e aperte a barra de espaço para começar.\n\nA letra e a velocidade você ajusta na barra de cima.'}
+function rgba(h,a){const n=parseInt(h.slice(1),16);return `rgba(${n>>16},${n>>8&255},${n&255},${a})`}
+function atualiza(){
+ rol.scrollTop=pos;const m=maxS();
+ Q('tpBarra').style.width=(m?pos/m*100:0)+'%';
+ Q('tpTempo').textContent=fmt(pos/vel())+' / '+fmt(m/vel());
+}
+function aplica(){
+ const v=id=>Q(id).value,lado=v('tpLado');
+ box.style.height=(lado==='toda'?100:v('tpAltura'))+'vh';
+ box.style.top=lado==='baixo'?'auto':'0';box.style.bottom=lado==='baixo'?'0':'auto';
+ box.style.background=rgba(v('tpFundo'),v('tpOp')/100);
+ txt.textContent=ent.value;
+ txt.style.fontSize=v('tpTam')+'px';txt.style.width=v('tpLarg')+'%';
+ txt.style.lineHeight=v('tpEsp');txt.style.textAlign=v('tpAlin');txt.style.color=v('tpCor');
+ const h=view.clientHeight,p=+v('tpGuiaPos');
+ txt.style.paddingTop=(h*p/100)+'px';txt.style.paddingBottom=h+'px';
+ const g=Q('tpGuia');g.style.top=p+'%';g.style.display=Q('tpGuiaOn').checked?'block':'none';
+ Q('tpSombra').style.background=Q('tpDest').checked?`linear-gradient(to bottom,rgba(0,0,0,.8) 0,rgba(0,0,0,.8) ${Math.max(0,p-8)}%,rgba(0,0,0,0) ${Math.max(0,p-2)}%,rgba(0,0,0,0) ${p+14}%,rgba(0,0,0,.8) ${p+22}%,rgba(0,0,0,.8) 100%)`:'none';
+ rol.style.transform=Q('tpEspH').checked?'scaleX(-1)':'';
+ Q('tpAlV').textContent=v('tpAltura')+'%';Q('tpLaV').textContent=v('tpLarg')+'%';Q('tpEsV').textContent=v('tpEsp');
+ Q('tpGpV').textContent=p+'%';Q('tpOpV').textContent=v('tpOp')+'%';Q('tpCtV').textContent=v('tpCont3')+'s';
+ atualiza();
+}
+function loop(t){if(!rodando)return;const dt=(t-ultimo)/1000;ultimo=t;pos+=vel()*dt;
+ if(pos>=maxS()){pos=maxS();parar()}atualiza();requestAnimationFrame(loop)}
+function comecar(){rodando=true;Q('tpPlay').textContent='⏸ Pausar';ultimo=performance.now();requestAnimationFrame(loop)}
+function parar(){rodando=false;Q('tpPlay').textContent='▶ Iniciar'}
+function iniciar(){
+ if(rodando||cdTimer)return;
+ const n=+Q('tpCont3').value;
+ if(pos<=0&&n>0){let c=n;const el=Q('tpCont');el.style.display='flex';el.textContent=c;
+  cdTimer=setInterval(()=>{c--;if(c<=0){clearInterval(cdTimer);cdTimer=null;el.style.display='none';comecar()}else el.textContent=c},1000);return}
+ comecar()}
+function alterna(){if(cdTimer){clearInterval(cdTimer);cdTimer=null;Q('tpCont').style.display='none';return}rodando?parar():iniciar()}
+function ir(d){pos=Math.min(maxS(),Math.max(0,pos+d));atualiza()}
+function topo(){parar();pos=0;atualiza()}
+function abrir(){box.style.display='flex';Q('bTp').classList.add('on');aplica()}
+function fechar(){parar();box.style.display='none';Q('bTp').classList.remove('on')}
+const aberto=()=>box.style.display==='flex';
+function alternaPainel(){aberto()?fechar():abrir()}
+function mostra(id,btn){const e=Q(id);e.hidden=!e.hidden;Q(btn).classList.toggle('on',!e.hidden);aplica()}
+
+carregaCfg();
+cfg.forEach(e=>e.addEventListener('input',()=>{const m=maxS(),r=m?pos/m:0;salvaCfg();aplica();pos=r*maxS();atualiza()}));
+cfg.forEach(e=>e.addEventListener('change',()=>{if(e.type==='range'||e.type==='checkbox')e.blur()}));
+ent.addEventListener('input',()=>{ls('tp_texto',ent.value);aplica()});
+Q('tpPlay').onclick=function(){alterna();this.blur()};
+Q('tpTopo').onclick=function(){topo();this.blur()};
+Q('tpEdit').onclick=()=>mostra('tpEditor','tpEdit');
+Q('tpCfg').onclick=()=>mostra('tpCfgBox','tpCfg');
+Q('tpFechar').onclick=fechar;
+Q('bTp').onclick=function(){alternaPainel();this.blur()};
+Q('tpAbrir').onclick=()=>Q('tpArq').click();
+Q('tpArq').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{ent.value=r.result;ls('tp_texto',ent.value);pos=0;aplica()};r.readAsText(f);e.target.value=''};
+Q('tpSalvar').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([ent.value],{type:'text/plain'}));a.download='roteiro.txt';a.click()};
+Q('tpLimpar').onclick=()=>{if(confirm('Apagar o roteiro?')){ent.value='';ls('tp_texto','');topo();aplica()}};
+view.addEventListener('wheel',e=>ir(e.deltaY),{passive:true});
+new ResizeObserver(()=>{if(aberto())aplica()}).observe(view);
+
+// Sincroniza com os botões de gravação do programa
+const sinc=()=>aberto()&&Q('tpSinc').checked;
+Q('iniciar').addEventListener('click',()=>{if(sinc()){topo();iniciar()}});
+Q('pausar').addEventListener('click',()=>{if(sinc())alterna()});
+Q('parar').addEventListener('click',()=>{if(sinc())parar()});
+
+// Teclas (têm prioridade sobre as do PDF enquanto o teleprompter está aberto)
+window.addEventListener('keydown',e=>{
+ const t=e.target,tag=t.tagName,tipo=(t.type||'');
+ if(tag==='TEXTAREA'||tag==='SELECT'||(tag==='INPUT'&&!['range','checkbox','color'].includes(tipo)))return;
+ const k=e.key,app=Q('appRaiz');
+ if(app.style.display==='none'||document.body.classList.contains('cel'))return;
+ if(k==='p'||k==='P'){alternaPainel();e.preventDefault();e.stopImmediatePropagation();return}
+ if(!aberto())return;
+ let ok=true;
+ if(k===' ')alterna();
+ else if(k==='ArrowUp'){Q('tpVel').value=Math.min(100,+Q('tpVel').value+2);salvaCfg();aplica()}
+ else if(k==='ArrowDown'){Q('tpVel').value=Math.max(1,+Q('tpVel').value-2);salvaCfg();aplica()}
+ else if(k==='ArrowLeft')ir(-150);
+ else if(k==='ArrowRight')ir(150);
+ else if(k==='+'||k==='='){Q('tpTam').value=Math.min(160,+Q('tpTam').value+4);salvaCfg();aplica()}
+ else if(k==='-'){Q('tpTam').value=Math.max(20,+Q('tpTam').value-4);salvaCfg();aplica()}
+ else if(k==='Home')topo();
+ else ok=false;
+ if(ok){e.preventDefault();e.stopImmediatePropagation()}
+},true);
+})();
 </script>
 </body>
 </html>
