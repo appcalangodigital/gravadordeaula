@@ -76,8 +76,7 @@ html.foco::-webkit-scrollbar{display:none}
 #igAviso{font-size:11px;line-height:1.3;color:#f0d98a}
 body.cel .lateral>*{display:none}
 body.cel #barraIG{display:none}
-body.cel .lateral>h1,body.cel .lateral>.painelRemoto,body.cel #bCam{display:flex}
-body.cel #bCam{display:block}
+body.cel .lateral>h1,body.cel .lateral>.painelRemoto{display:flex}
 </style>
 </head>
 <body>
@@ -951,9 +950,8 @@ addEventListener('beforeunload',e=>{if(gravando){e.preventDefault();e.returnValu
 if(modo==='cel'){
   document.body.classList.add('cel');
   const pn=document.createElement('div');pn.className='painelRemoto';
-  pn.innerHTML='<b>MODO CELULAR</b><div>Código para digitar no computador:</div><div id="codigo">······</div><div id="stRemoto">Conectando…</div><small>Deixe o celular de pé, com a tela ligada e carregando. Toque em “Ligar câmera” aqui; o resto você faz pelo computador.</small><button id="trocaModo" style="margin-top:8px">Trocar modo</button>';
+  pn.innerHTML='<b>MODO CELULAR</b><div>Código para digitar no computador:</div><div id="codigo">······</div><div id="stRemoto">Conectando…</div><small>Deixe o celular de pé, com a tela ligada e carregando. Ligue a câmera e faça o resto pelo computador.</small>';
   $('lateral').insertBefore(pn,$('lateral').children[1]);
-  $('trocaModo').onclick=()=>{location.hash='';location.reload()};
   let peer=null,conn=null,pdfParts=[],pdfN=0,codigo=null;
   try{codigo=localStorage.getItem('gdaula_cod')}catch(e){}
   if(!/^\d{6}$/.test(codigo||''))codigo=String(Math.floor(100000+Math.random()*900000));
@@ -1025,10 +1023,10 @@ if(modo==='cel'){
     peer.on('connection',c=>{
       if(conn&&conn.open){try{conn.close()}catch(e){}}
       conn=c;
-      const aberto=()=>{stR('Computador conectado ✔');enviaSt();acordar()};
+      const aberto=()=>{stR('Computador conectado ✔');$('lateral').classList.add('oculta');ajustaTela();enviaSt();acordar()};
       if(c.open)aberto();else c.on('open',aberto);
       c.on('data',recebe);
-      c.on('close',()=>{if(conn===c){conn=null;stR('Computador desconectado. Aguardando de novo…')}});
+      c.on('close',()=>{if(conn===c){conn=null;stR('Computador desconectado. Aguardando de novo…');$('lateral').classList.remove('oculta');ajustaTela()}});
       c.on('error',()=>{});
     });
   }
