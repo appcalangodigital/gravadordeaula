@@ -101,6 +101,8 @@ body.cel #bCam{display:block}
 <span id="igAviso"></span></div>
 <label>Formato
 <select id="fmt"><option value="both">Os dois</option><option value="h">YouTube</option><option value="v">Instagram</option></select></label>
+<label>Instagram em
+<select id="prop"><option value="q" selected>Quadrado 1:1</option><option value="r">Vertical 9:16 (Reels)</option></select></label>
 <label style="display:none">Rosto em tela inteira (tecla M)
 <select id="molV"><option value="livre">Só a bandeira (marca d'água)</option><option value="moldura">Bandeira e moldura</option></select></label>
 <div class="duo">
@@ -113,7 +115,7 @@ body.cel #bCam{display:block}
 <label>Rosto
 <select id="rosto"><option value="s" selected>Em cima</option><option value="i">Embaixo</option></select></label>
 <label>Medidas fixas
-<small>YouTube 1280×720<br>Instagram 1080×1080 (quadrado)</small></label>
+<small>YouTube 1280×720<br><span id="medIG">Instagram 1080×1080 (quadrado)</span></small></label>
 </div>
 <div id="pg">Página 0 / 0</div>
 <div class="grade4">
@@ -183,8 +185,9 @@ function escolher(m){
 }
 function iniciarApp(modo){
 let W=1280;const H=720,GAP=8,MARG=4;
-const VWc=1080,VHc=1080;let HH=200,FH=175,AH=VHc-HH-FH;
+const VWc=1080;let VHc=1080,HH=200,FH=175,AH=VHc-HH-FH,HT=0,FCH=175,WMB=52;
 const FLW=220,FLX=VWc-FLW-52;let CDV=170,CXV=FLX+FLW/2-CDV/2,CYV=Math.round((HH-5-CDV)/2);
+let FLXv=FLX,TXv=52,TWv=FLX-52-40;
 const SER='Lora, Georgia, serif',SANS='"Public Sans", Arial, sans-serif',BEB='"Bebas Neue", Impact, sans-serif',SCR='Playball, "Brush Script MT", cursive';
 const TEAL='#2ee6d6',GOLD='#d4aa2c',DEEP1='#0f434a',DEEP2='#0a2f35',FUNDO='#1d2427';
 const WORKER='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -289,11 +292,12 @@ function buildBrandV(){
   x.fillStyle=TEAL;x.fillRect(0,fy,VWc,5);
   x.textAlign='center';x.textBaseline='top';
   // nome no topo, à esquerda do círculo
-  const nc=Math.round(CXV-CDV/2-40)/2+20,mw=CXV-CDV/2-40-40;
+  const vl=CXV<VWc/2;
+  const nc=vl?Math.round(((CXV+CDV+40)+(VWc-120))/2):Math.round(CXV-CDV/2-40)/2+20,mw=vl?(VWc-120)-(CXV+CDV+40):CXV-CDV/2-40-40;
   const ns=ajusta(x,'Carlos Barreto','400',SCR,84,mw);
   x.letterSpacing='6px';
   const ps=ajusta(x,'PSICANALISTA','italic 600',SER,24,mw);
-  const nh=Math.round(ns*1.25),ph2=Math.round(ps*1.3),t0=Math.round((HH-5-(nh+ph2+4))/2);
+  const nh=Math.round(ns*1.25),ph2=Math.round(ps*1.3),t0=HT+Math.round((HH-5-HT-(nh+ph2+4))/2);
   x.letterSpacing='0px';
   x.font='400 '+ns+'px '+SCR;x.fillStyle=GOLD;x.fillText('Carlos Barreto',nc,t0);
   x.letterSpacing='6px';
@@ -302,11 +306,11 @@ function buildBrandV(){
   // rodapé: site à esquerda, bandeira à direita
   if(flagImg.complete&&flagImg.naturalWidth){
     const fh=Math.round(FLW*flagImg.naturalHeight/flagImg.naturalWidth);
-    x.drawImage(flagImg,FLX,fy+5+Math.round((FH-5-fh)/2),FLW,fh);
+    x.drawImage(flagImg,FLXv,fy+5+Math.round((FCH-5-fh)/2),FLW,fh);
   }
   x.textAlign='left';x.textBaseline='middle';
-  const s3=ajusta(x,'clinicadaescuta.com.br','600',SANS,36,FLX-52-40);
-  x.font='600 '+s3+'px '+SANS;x.fillStyle=TEAL;x.fillText('clinicadaescuta.com.br',52,fy+5+(FH-5)/2);
+  const s3=ajusta(x,'clinicadaescuta.com.br','600',SANS,36,TWv);
+  x.font='600 '+s3+'px '+SANS;x.fillStyle=TEAL;x.fillText('clinicadaescuta.com.br',TXv,fy+5+(FCH-5)/2);
   return b;
 }
 
@@ -471,7 +475,7 @@ function margemLeitura(){
 function escalaLeitura(){return (cvL.width-2*margemLeitura())/RW()}
 function drawLeitura(){
   const W2=cvL.width,H2=cvL.height,mg=margemLeitura(),Rr=Math.max(100,W2-2*mg),rw=RW(),f=Rr/rw;
-  const chave=[cur,Math.round(y),Rr,rw,H2,gen,cache.size,rendering.size,alvoCena,$('fmt').value,$('molV').value,pages,pdf?1:0].join('|');
+  const chave=[cur,Math.round(y),Rr,rw,H2,gen,cache.size,rendering.size,alvoCena,$('fmt').value,$('molV').value,pages,pdf?1:0,AH].join('|');
   if(chave===ultLeit)return;
   ultLeit=chave;
   cl.fillStyle=FUNDO;cl.fillRect(0,0,W2,H2);
@@ -574,7 +578,7 @@ function faceFullV(a){
   if(molAtual==='moldura'){c2.lineWidth=12;c2.strokeStyle=TEAL;c2.strokeRect(6,6,VWc-12,VHc-12)}
   if(flagImg.complete&&flagImg.naturalWidth){
     const wm=220,fh=Math.round(wm*flagImg.naturalHeight/flagImg.naturalWidth);
-    const x=VWc-220-52,yb=VHc-52;
+    const x=FLXv,yb=VHc-WMB;
     c2.save();c2.globalAlpha=0.9*a;c2.shadowColor='rgba(0,0,0,.55)';c2.shadowBlur=14;
     c2.drawImage(flagImg,x,yb-fh,wm,fh);c2.restore();
   }
@@ -631,12 +635,12 @@ function ajustaTela(){
   const f=$('fmt').value,h=f!=='v',v=f!=='h',dois=h&&v;
   p.classList.toggle('foco',foco);document.documentElement.classList.toggle('foco',foco);
   const aw=foco?document.documentElement.clientWidth:p.clientWidth-12,ah=foco?innerHeight:innerHeight-44-(dois?30:0);
-  const r=16/9,rv=1;
+  const r=16/9,rv=VWc/VHc;
   if(!gravando){const nw=Math.round(H*r/2)*2;if(nw!==W){W=nw;cv.width=W;brand=null;gC=null;}}
   if(foco&&v&&!h){
     $('pvV').style.width=Math.floor(Math.min(aw,ah*rv))+'px';
   }else{
-    cv.style.width=Math.floor(Math.min(aw,ah*r))+'px';$('pvV').style.width='';
+    cv.style.width=Math.floor(Math.min(aw,ah*r))+'px';$('pvV').style.width=VHc>VWc?Math.floor(Math.min(aw,ah*rv,420))+'px':'';
   }
   ajustaLeitura();
 }
@@ -653,6 +657,23 @@ function aplicaFmt(){
 }
 $('fmt').onchange=function(){aplicaFmt();this.blur()};
 aplicaFmt();
+function nomeIG(){return $('prop').value==='r'?'Instagram (vertical 9:16)':'Instagram (quadrado 1:1)'}
+function aplicaProp(){
+  if(gravando)return;
+  const vert=$('prop').value==='r';
+  VHc=vert?1920:1080;
+  if(vert){HH=330;FH=470;HT=140;WMB=360;FLXv=52;TXv=52+FLW+36;TWv=VWc-120-TXv}
+  else{HH=200;FH=175;HT=0;WMB=52;FLXv=FLX;TXv=52;TWv=FLX-52-40}
+  FCH=175;AH=VHc-HH-FH;
+  CXV=FLXv+FLW/2-CDV/2;
+  CYV=HT+Math.round((HH-5-HT-CDV)/2);
+  cvV.height=VHc;
+  brandV=null;brandVF=null;ultLeit='';
+  $('medIG').textContent=vert?'Instagram 1080×1920 (vertical 9:16)':'Instagram 1080×1080 (quadrado)';
+  const rr=$('resV').querySelector('.rot');if(rr)rr.textContent=nomeIG();
+  ajustaTela();
+}
+$('prop').onchange=function(){aplicaProp();this.blur()};
 
 function setAlvo(a){
   alvoCena=a;
@@ -665,12 +686,12 @@ function atualizaIG(){
   $('igAula').classList.toggle('on',!livre);$('igLivre').classList.toggle('on',livre);
   $('igSem').classList.toggle('on',!mol);$('igCom').classList.toggle('on',mol);
   let t;
-  if(f==='h')t='O formato está em YouTube. Escolha “Os dois” ou “Instagram” para ver o quadrado.';
+  if(f==='h')t='O formato está em YouTube. Escolha “Os dois” ou “Instagram” para ver o Instagram.';
   else if(!livre)t='Vendo a cena AULA. A moldura só vale no vídeo Livre (clique em Livre para ver).';
   else t=mol?'Vendo o LIVRE com moldura turquesa.':'Vendo o LIVRE sem moldura (só a bandeira).';
   if(leituraOn()&&f!=='h')t+=' Abrindo a prévia do Instagram…';
   $('igAviso').textContent=t;
-  $('rotV').textContent='Instagram (quadrado 1:1) · '+(livre?(mol?'LIVRE com moldura':'LIVRE sem moldura'):'AULA com barras');
+  $('rotV').textContent=nomeIG()+' · '+(livre?(mol?'LIVRE com moldura':'LIVRE sem moldura'):'AULA com barras');
 }
 function mostraIG(){const b=$('bPrev');if(modo==='pc'&&leituraOn()&&b)b.click();atualizaIG();if($('fmt').value!=='h')setTimeout(()=>$('blV').scrollIntoView({block:'nearest',behavior:'smooth'}),150)}
 $('igAula').onclick=()=>{setAlvo(1);igEnvia();mostraIG()};
@@ -862,7 +883,7 @@ $('iniciar').onclick=()=>{
   $('resultado').style.display='none';
   t0=Date.now();acum=0;pausado=false;
   timer=setInterval(()=>{const s=Math.floor((acum+(pausado?0:Date.now()-t0))/1000);$('tempo').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')},500);
-  ['iniciar','fmt'].forEach(i=>$(i).disabled=true);
+  ['iniciar','fmt','prop'].forEach(i=>$(i).disabled=true);
   $('parar').disabled=false;$('pausar').disabled=false;
   msg('Gravando... Use Pausar para parar um instante e Finalizar para terminar.');
 };
@@ -896,7 +917,7 @@ function finalizar(){
   $('resultado').style.display='block';
   $('parar').disabled=true;$('pausar').disabled=true;
   pausado=false;$('pausar').textContent='⏸ Pausar';$('pausar').classList.remove('on');
-  ['bPdf','fmt'].forEach(i=>$(i).disabled=false);
+  ['bPdf','fmt','prop'].forEach(i=>$(i).disabled=false);
   liberar();
   if(recs.some(o=>o.vazio)){msg('Atenção: o vídeo '+recs.filter(o=>o.vazio).map(o=>o.tag==='V'?'Instagram':'YouTube').join(' e ')+' saiu vazio. Grave de novo só nesse formato.');return}
   msg(tipo.includes('mp4')?'Gravação pronta. Confira abaixo e baixe os vídeos.':'Gravação pronta. Atenção: este navegador gerou .webm, que o Instagram não aceita. Será preciso converter para mp4.');
@@ -952,6 +973,7 @@ if(modo==='cel'){
       case 'v':
         ['pos','tam','rosto','molV'].forEach(k=>{if(d[k]!==undefined&&$(k).value!==String(d[k]))$(k).value=d[k]});
         if(d.fmt&&!gravando&&$('fmt').value!==d.fmt){$('fmt').value=d.fmt;aplicaFmt()}
+        if(d.prop&&!gravando&&$('prop').value!==d.prop){$('prop').value=d.prop;aplicaProp()}
         if(d.alvo!==undefined&&alvoCena!==d.alvo)setAlvo(d.alvo);
         gC=null;
         if(pdf){cur=Math.min(pages,Math.max(1,d.cur));y=d.y;xo=d.xo;lastRW=RW();atualizaPg()}
@@ -1037,7 +1059,7 @@ if(modo==='pc'){
   }
   setInterval(()=>{
     if(!conn||!conn.open)return;
-    const o={t:'v',cur,y:Math.round(y),xo:Math.round(xo),alvo:alvoCena,fmt:$('fmt').value,pos:$('pos').value,tam:$('tam').value,rosto:$('rosto').value,molV:$('molV').value};
+    const o={t:'v',cur,y:Math.round(y),xo:Math.round(xo),alvo:alvoCena,fmt:$('fmt').value,prop:$('prop').value,pos:$('pos').value,tam:$('tam').value,rosto:$('rosto').value,molV:$('molV').value};
     const s=JSON.stringify(o);if(s!==envAnt){envAnt=s;env(o)}
   },100);
   setInterval(()=>{if(conn&&conn.open&&Date.now()-ultimoSt>6000)pcSt('Sem sinal do celular… (a tela apagou?)')},1500);
@@ -1068,7 +1090,7 @@ if(modo==='pc'){
     $('tempo').textContent=d.tempo;
     $('iniciar').disabled=!(d.pronto&&!d.gravando);
     $('pausar').disabled=!d.gravando;$('parar').disabled=!d.gravando;
-    $('fmt').disabled=!!d.gravando;
+    $('fmt').disabled=!!d.gravando;$('prop').disabled=!!d.gravando;
     $('pausar').textContent=d.pausado?'▶ Pausar':'⏸ Pausar';$('pausar').classList.toggle('on',!!d.pausado);
     const m=(d.cam?'':'Ligue a câmera no CELULAR (toque em “Ligar câmera” lá). ')+(d.fim&&!d.gravando?'Vídeo pronto NO CELULAR: toque em Baixar lá. ':'')+(d.msg||'');
     if(m!==msgAnt){msgAnt=m;msg(m)}
