@@ -54,6 +54,9 @@ video{display:block;width:100%;border-radius:6px;background:#000}
 .principal.foco .topo{position:fixed;top:6px;left:6px;z-index:5;margin:0;min-height:0;background:rgba(20,26,28,.78);border-radius:10px;padding:2px}
 .principal.foco #msg,.principal.foco #rotH,.principal.foco #rotV{display:none!important}
 .principal.foco #previa,.principal.foco #leitura{border-radius:0}
+.principal.foco #previa{margin:8px auto 0;border-radius:12px;box-shadow:0 0 0 1px rgba(46,230,214,.4),0 6px 18px rgba(0,0,0,.5)}
+.principal.foco #pvV{margin:16px auto 14px}
+.principal.foco #previaV{border-radius:12px;box-shadow:0 0 0 1px rgba(46,230,214,.4),0 6px 18px rgba(0,0,0,.5)}
 #blL{width:100%}
 #leitura{display:block;margin:0 auto;background:#1d2427;touch-action:none}
 html.foco{scrollbar-width:none}
@@ -633,7 +636,7 @@ function ajustaTela(){
   const foco=$('lateral').classList.contains('oculta');
   const f=$('fmt').value,h=f!=='v',v=f!=='h',dois=h&&v;
   p.classList.toggle('foco',foco);document.documentElement.classList.toggle('foco',foco);
-  const aw=foco?document.documentElement.clientWidth:p.clientWidth-12,ah=foco?innerHeight:innerHeight-44-(dois?30:0);
+  const aw=foco?document.documentElement.clientWidth-16:p.clientWidth-12,ah=foco?innerHeight-40:innerHeight-44-(dois?30:0);
   const r=16/9,rv=VWc/VHc;
   if(!gravando){const nw=Math.round(H*r/2)*2;if(nw!==W){W=nw;cv.width=W;brand=null;gC=null;}}
   if(foco&&v&&!h){
