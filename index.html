@@ -1182,7 +1182,7 @@ if(modo==='cel'){
 
 if(modo==='pc'){
   const pn=document.createElement('div');pn.className='painelRemoto';
-  pn.innerHTML='<b>CELULAR (câmera e gravação)</b><input type="text" id="pcCod" inputmode="numeric" maxlength="6" placeholder="código de 6 números" autocomplete="off"><button id="pcCon">Conectar</button><div id="pcSt">Desconectado</div><button id="trocaModo">Trocar modo</button>';
+  pn.innerHTML='<b>CELULAR (câmera e gravação)</b><input type="text" id="pcCod" inputmode="numeric" maxlength="6" placeholder="código de 6 números" autocomplete="off"><button id="pcCon">Conectar</button><button id="pcDes">Desconectar</button><div id="pcSt">Desconectado</div><button id="trocaModo">Trocar modo</button>';
   $('lateral').insertBefore(pn,$('lateral').children[1]);
   $('trocaModo').onclick=()=>{location.hash='';location.reload()};
   let peer=null,conn=null,ultimoSt=0,ultimoPdf=null,envAnt='',msgAnt='';
@@ -1259,6 +1259,12 @@ if(modo==='pc'){
     peer.on('error',e=>pcSt(e.type==='peer-unavailable'?'Código não encontrado. Confira o número no celular.':'Erro de conexão ('+e.type+').'));
   }
   $('pcCon').onclick=conectar;
+  $('pcDes').onclick=()=>{
+    if(!conn||!conn.open){pcSt('Já está desconectado.');return}
+    if(window.tpFlush)window.tpFlush();
+    pcSt('Desconectando…');
+    setTimeout(()=>{try{conn.close()}catch(e){}conn=null;if(peer){try{peer.destroy()}catch(e){}peer=null}pcSt('Desconectado. O celular segue sozinho.')},400);
+  };
   $('pcCod').onkeydown=e=>{if(e.key==='Enter')conectar()};
   const bPrev=document.createElement('button');bPrev.id='bPrev';bPrev.textContent='Ver como sai no vídeo';
   $('lateral').insertBefore(bPrev,$('bCena').nextSibling);
@@ -1401,6 +1407,7 @@ function sendEstado(f){const v=id=>Q(id).value;
  const j=JSON.stringify(o);if(j!==estAnt||f){estAnt=j;envTp(o)}}
 window.tpRecebeR=d=>{lastR=Date.now();remCur=d.cur;remTot=d.tot;if(!loc()){if(!cdTimer)Q('tpTempo').textContent=fmt(d.cur)+' / '+fmt(d.tot);if(Date.now()-cmdT>1500&&rodando!==d.run){rodando=d.run;Q('tpPlay').textContent=rodando?'⏸ Pausar':'▶ Iniciar'}}};
 setInterval(()=>{if(aberto())sendEstado(true)},4000);
+window.tpFlush=()=>{if(aberto())sendEstado(true)};
 setInterval(()=>{if(aberto()&&!loc()&&!cdTimer&&Date.now()-lastR>3000)Q('tpTempo').textContent='⚠ sem sinal do celular'},1000);
 })();
 </script>
