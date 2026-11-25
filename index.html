@@ -898,7 +898,7 @@ $('bCam').onclick=async()=>{
     $('bCam').disabled=false;return;
   }
   if(!audS){
-    try{audS=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:true}})}
+    try{audS=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}})}
     catch(e){msg('Câmera ligada, mas sem microfone: o vídeo sairá sem som.')}
   }
   $('bCam').disabled=false;rotuloCam();
